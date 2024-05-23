@@ -34,11 +34,10 @@ jobs:
             echo "::set-output name=commit_check::success"
           fi
 
-      - name: Close Pull request
+      - name: Close Pull Request with Comment
         if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
         run: |
-          gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met
+          gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met.
           **Description:** The branch name or the last commit message does not include a JIRA ID with suffix ADONICS or NCECA."
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
