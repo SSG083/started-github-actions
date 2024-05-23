@@ -16,8 +16,8 @@ jobs:
       - name: Check branch name for JIRA ID
         id: check_branch
         run: |
-          if [[ ! "${{ github.head_ref }}" =~ (ADONICS|NCECA)-[0-9]+ ]]; then
-            echo "Branch name does not contain JIRA ID"
+          if [[ ! ("${{ github.head_ref }}" =~ (ADONICS|NCECA)-[0-9]+) ]]; then
+            echo "Branch name does not contain a valid JIRA ID"
             echo "::set-output name=branch_check::failure"
           else
             echo "::set-output name=branch_check::success"
@@ -28,16 +28,18 @@ jobs:
         run: |
           commit_message=$(git log --format=%B -n 1 ${{ github.event.pull_request.head.sha }})
           if [[ ! "$commit_message" =~ (ADONICS|NCECA)-[0-9]+ ]]; then
-            echo "Commit message does not contain a JIRA ID"
+            echo "Commit message does not contain a valid JIRA ID"
             echo "::set-output name=commit_check::failure"
           else
             echo "::set-output name=commit_check::success"
           fi
 
-      - name: Close Pull Request with Comment
+      - name: Close Pull Request and Delete Branch
         if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
         run: |
-          gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met.
-          **Description:** The branch name or the last commit message does not include a JIRA ID with suffix ADONICS or NCECA."
+          gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met
+          **Description:** The branch name or the last commit message does not include a JIRA ID."
+          git push origin --delete ${{ github.head_ref }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
