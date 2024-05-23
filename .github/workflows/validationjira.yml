@@ -1,0 +1,50 @@
+name: Check Jira Id
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check_pull_request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Check branch name for JIRA ID
+        id: check_branch
+        run: |
+          if [[ ! "${{ github.head_ref }}" =~ (ADONICS|NCECA)-[0-9]+ ]]; then
+            echo "Branch name does not contain JIRA ID"
+            echo "::set-output name=branch_check::failure"
+          else
+            echo "::set-output name=branch_check::success"
+          fi
+
+      - name: Check commit message for JIRA ID
+        id: check_commit
+        run: |
+          commit_message=$(git log --format=%B -n 1 ${{ github.event.pull_request.head.sha }})
+          if [[ ! "$commit_message" =~ (ADONICS|NCECA)-[0-9]+ ]]; then
+            echo "Commit message does not contain a JIRA ID"
+            echo "::set-output name=commit_check::failure"
+          else
+            echo "::set-output name=commit_check::success"
+          fi
+
+      - name: Close Pull Request
+        if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
+        run: |
+          gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met
+          **Description:** The branch name or the last commit message does not include a JIRA ID with suffix ADONICS or NCECA."
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Delete Branch
+        if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
+        run: |
+          git push origin --delete ${{ github.head_ref }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
