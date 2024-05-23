@@ -34,7 +34,7 @@ jobs:
             echo "::set-output name=commit_check::success"
           fi
 
-      - name: Close Pull Request
+      - name: Close Pull Request with Comment
         if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
         run: |
           gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met
@@ -45,6 +45,11 @@ jobs:
       - name: Delete Branch
         if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
         run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git remote set-url origin https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}
           git push origin --delete ${{ github.head_ref }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        continue-on-error: true
+
