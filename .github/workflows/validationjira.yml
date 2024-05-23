@@ -22,6 +22,7 @@ jobs:
           else
             echo "::set-output name=branch_check::success"
           fi
+
       - name: Check commit message for JIRA ID
         id: check_commit
         run: |
@@ -32,12 +33,12 @@ jobs:
           else
             echo "::set-output name=commit_check::success"
           fi
-      - name: Close Pull Request and Delete Branch
+
+      - name: Close Pull Request with Comment
         if: steps.check_branch.outputs.branch_check == 'failure' || steps.check_commit.outputs.commit_check == 'failure'
         run: |
-          gh pr close ${{ github.event.pull_request.number }} --comment "**Title:** PR automatically closed - standards not met
-          **Description:** The branch name or the last commit message does not include a JIRA ID."
-          git push origin --delete ${{ github.head_ref }}
+          gh pr close ${{ github.event.pull_request.number }}
+          gh pr comment ${{ github.event.pull_request.number }} --body "**Title:** PR automatically closed - standards not met.\n**Description:** The branch name or the last commit message does not include a JIRA ID."
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        continue-on-error: true
+
